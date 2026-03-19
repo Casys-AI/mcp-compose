@@ -1,6 +1,6 @@
 # MCP Compose Clean Break Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **Status: Completed (2026-03-19).** All tasks executed. Renderer has since moved to `host/`.
 
 **Goal:** Finish the `lib/mcp-compose` refactor as a clean break, remove legacy duplicate trees, establish `core / sdk / host` as the only real structure, and make `lib/server` consume the sync/UI contract from `mcp-compose/core`.
 

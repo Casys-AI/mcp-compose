@@ -110,18 +110,25 @@ lib/mcp-compose/
 ├── PRD.md                 # Product boundary and ownership
 ├── README.md              # Usage docs
 ├── src/
-│   ├── core/
+│   ├── core/              # Composition semantics (pure, no I/O)
 │   │   ├── types/
 │   │   ├── collector/
 │   │   ├── sync/
-│   │   ├── composer/
-│   │   └── renderer/
-│   ├── sdk/
+│   │   └── composer/
+│   ├── sdk/               # External shape adapters + compose events
 │   │   ├── mcp-sdk.ts
 │   │   ├── ui-meta-builder.ts
-│   │   └── composition-validator.ts
-│   ├── host/
-│   │   └── types.ts
+│   │   ├── composition-validator.ts
+│   │   └── compose-events.ts
+│   ├── host/              # Host contracts + renderer
+│   │   ├── types.ts
+│   │   └── renderer/
+│   ├── runtime/           # Dashboard composition from manifests + templates
+│   │   ├── types.ts
+│   │   ├── manifest.ts
+│   │   ├── template.ts
+│   │   ├── cluster.ts
+│   │   └── compose.ts
 │   ├── architecture_test.ts
 │   ├── edge-cases_test.ts
 │   ├── full-pipeline_test.ts
@@ -141,7 +148,8 @@ frameworks.
 The event bus implements:
 
 - `ui/initialize` — handshake with host capabilities
-- `ui/update-model-context` — context sharing between UIs
+- `ui/compose/event` — dedicated cross-UI event routing (mcp-compose protocol)
+- `ui/update-model-context` — context sharing between UIs (legacy)
 - `ui/notifications/tool-result` — forwarding results to target UIs
 - `ui/message` — logging/debugging channel
 
@@ -151,11 +159,14 @@ All messages follow JSON-RPC 2.0.
 
 Implemented today:
 
-- canonical `core / sdk / host` structure
+- canonical `core / sdk / host / runtime` structure
 - collector, sync, composer, and renderer pipeline
+- `composeEvents()` SDK with dedicated `ui/compose/event` protocol
+- `uiMeta()` builder for declaring emits/accepts
+- runtime: manifest parsing, template YAML, cluster management, HTTP transport
 - MCP SDK adaptation helpers
-- host contracts
-- test suite with cross-slice pipeline coverage
+- host contracts + renderer
+- test suite with cross-slice pipeline coverage (200+ tests)
 - JSR sync/publish automation
 
 Future work remains possible, but it should stay within the primitive/product boundary above.
@@ -165,7 +176,10 @@ Future work remains possible, but it should stay within the primitive/product bo
 - [ ] Bidirectional sync rules
 - [ ] Conditional sync (event data matching)
 - [ ] Sync rule composition (chains)
-- [ ] Dashboard persistence (save/load descriptors)
+- [ ] Dashboard persistence (save/load templates)
+- [ ] Runtime integration tests with mock MCP server
+- [ ] Managed mode (Deno Subhosting)
+- [ ] Sync rule auto-discovery from manifests
 
 ## Source Reference
 

@@ -20,9 +20,9 @@ scratch following the SPEC.md architecture.
 
 ## Constraints
 
-1. **Zero dependencies.** No npm packages. Deno standard library only.
-2. **Pure functions.** No I/O, no network, no filesystem in core modules. The `sdk/` layer may
-   adapt external result shapes, but it must not own composition semantics.
+1. **Zero dependencies.** No npm packages. Deno standard library only (`@std/assert`, `@std/yaml`).
+2. **Pure functions in core.** No I/O, no network, no filesystem in `core/` modules. The `sdk/`
+   layer may adapt external result shapes. The `runtime/` layer handles all I/O.
 3. **Test-first.** Write tests before implementation for each module.
 4. **AX principles.** Machine-readable errors, deterministic outputs, explicit defaults, composable
    primitives.
@@ -40,29 +40,38 @@ deno task lint      # Lint
 deno task fmt       # Format
 ```
 
-## Module Order (implement in this order)
+## Architecture
 
-1. `src/core/types/` — All type definitions first
-2. `src/core/sync/` — Sync rule resolver and validator
-3. `src/core/collector/` — UI resource collector
-4. `src/core/composer/` — Composite UI builder
-5. `src/core/renderer/` — HTML generator with event bus
-6. `src/sdk/` — External shape adapters and helpers
-7. `src/host/` — Host contracts only
-8. `mod.ts` — Public API exports
-9. `src/*_test.ts` — Cross-slice pipeline tests
-10. `README.md` / `SPEC.md` — Usage and boundary documentation
+```
+src/
+  core/           — Composition semantics (pure, no I/O)
+    types/        — UiLayout, UiSyncRule, UiOrchestration, resources, descriptor
+    collector/    — UI resource extraction from MCP tool results
+    sync/         — Sync rule validation and resolution
+    composer/     — Composite UI builder (buildCompositeUi)
+  sdk/            — External shape adapters + compose events
+    mcp-sdk.ts         — MCP SDK CallToolResult adapter
+    ui-meta-builder.ts — uiMeta() helper for declaring emits/accepts
+    composition-validator.ts — semantic validation (emits/accepts matching)
+    compose-events.ts  — UI-side cross-UI event channel (ui/compose/event)
+  host/           — Host contracts + renderer
+    types.ts      — CompositeUiHost, HostConfig interfaces
+    renderer/     — HTML/CSS/JS generation with event bus
+  runtime/        — Dashboard composition from manifests + templates (I/O layer)
+    types.ts      — McpManifest, DashboardTemplate, transports, ComposeRequest
+    manifest.ts   — Parse/validate/load manifest JSON files
+    template.ts   — Parse YAML templates, validate, inject {{args}}
+    cluster.ts    — Start/connect MCP servers, tool calls via HTTP
+    compose.ts    — composeDashboard() orchestrator
+```
 
-## Type Design
+## Dependency Rules
 
-Keep types in `src/core/types/` by domain concern:
-
-- `layout.ts` — UiLayout type
-- `sync-rules.ts` — UiSyncRule, ResolvedSyncRule
-- `orchestration.ts` — UiOrchestration (combines layout + sync + sharedContext)
-- `resources.ts` — CollectedUiResource
-- `descriptor.ts` — CompositeUiDescriptor
-- `mcp-apps.ts` — MCP Apps spec types (SEP-1865)
+- `core/` imports nothing outside core (it is the dependency root)
+- `sdk/` imports from `core/` only
+- `host/` imports from `core/` and `sdk/` (for COMPOSE_EVENT_METHOD constant)
+- `runtime/` imports from `core/`, `host/`, and `sdk/`
+- No circular dependencies between layers
 
 ## Event Bus Protocol
 
@@ -70,7 +79,8 @@ The rendered HTML includes a JavaScript event bus that implements:
 
 - JSON-RPC 2.0 messages via postMessage
 - `ui/initialize` handshake
-- `ui/update-model-context` for sync rule routing
+- `ui/compose/event` — dedicated cross-UI event routing (mcp-compose protocol)
+- `ui/update-model-context` for sync rule routing (legacy)
 - `ui/notifications/tool-result` for forwarding to targets
 - Broadcast support via `to: "*"`
 
@@ -81,3 +91,5 @@ The rendered HTML includes a JavaScript event bus that implements:
 - All error paths must return structured errors (not thrown strings)
 - Generated HTML must be valid HTML5
 - Event bus must handle malformed messages gracefully
+- Runtime errors use RuntimeErrorCode enum
+- Server processes are always cleaned up in finally blocks
