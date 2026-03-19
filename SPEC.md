@@ -190,7 +190,9 @@ Future work remains possible, but it should stay within the primitive/product bo
 
 ### Medium-term — Scale and distribution
 
-- [ ] Managed mode (Deno Subhosting for shareable dashboards)
+- [ ] Managed mode with local tunnel: runtime starts MCPs locally, creates a tunnel
+      to Subhosting, serves the dashboard on a public URL. Local DB stays local,
+      dashboard is shareable. One call → one link.
 - [ ] Sync rule composition (chains: A → B → C)
 - [ ] Multi-tenant cluster management
 - [ ] Dashboard hot-reload (template changes without restart)
