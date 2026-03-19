@@ -100,7 +100,8 @@ export interface McpToolDeclaration {
  * ```typescript
  * const manifest: McpManifest = {
  *   name: "mcp-einvoice",
- *   transport: { type: "stdio", command: "deno", args: ["run", "server.ts"] },
+ *   transport: { type: "stdio", command: "deno", args: ["run", "jsr:@casys/mcp-einvoice", "--http"] },
+ *   requiredEnv: ["IOPOLE_CLIENT_ID", "IOPOLE_CLIENT_SECRET", "IOPOLE_CUSTOMER_ID"],
  *   tools: [{ name: "invoice_search", emits: ["invoice.selected"] }],
  * };
  * ```
@@ -117,8 +118,12 @@ export interface McpToolDeclaration {
 export interface McpManifest {
   /** Unique server name (used as namespace in sync rules). */
   name: string;
+  /** Human-readable description. */
+  description?: string;
   /** Transport configuration (stdio or http). */
   transport: McpTransport;
+  /** Environment variable names required to run this server (names only, no values). */
+  requiredEnv?: string[];
   /** Tools this server exposes. */
   tools: McpToolDeclaration[];
 }

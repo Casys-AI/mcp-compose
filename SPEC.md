@@ -177,23 +177,31 @@ Future work remains possible, but it should stay within the primitive/product bo
 
 - [ ] Add `emits`/`accepts` to mcp-einvoice tools (via `uiMeta()`)
 - [ ] Add `composeEvents()` to mcp-einvoice UIs (invoice-viewer, doclist-viewer)
-- [ ] Generate manifest for mcp-einvoice (`deno task manifest`)
+- [ ] Generate manifest for mcp-einvoice (with `requiredEnv` + `transport`)
 - [ ] Runtime integration tests with a mock MCP server (HTTP transport)
 - [ ] End-to-end test: manifest + template + cluster → rendered dashboard
 
-### Short-term — Composition features
+### Short-term — CLI and user experience
 
+- [ ] CLI `mcp-compose compose` — design dashboards from manifests (no servers needed,
+      agent browses available tools/emits/accepts, generates template YAML)
+- [ ] CLI `mcp-compose deploy <template.yaml>` — fetch MCPs from JSR, prompt for
+      missing env vars (from `requiredEnv`), start servers, serve dashboard
+- [ ] Local credential storage (`.env` or keychain, per template)
 - [ ] Sync rule auto-discovery from manifests (propose wiring from emits/accepts)
 - [ ] Dashboard persistence (save/load templates as YAML)
+
+### Medium-term — Composition and sync
+
 - [ ] Conditional sync (event data matching, e.g., filter by field value)
 - [ ] Bidirectional sync rules
-
-### Medium-term — Scale and distribution
-
-- [ ] Managed mode with local tunnel: runtime starts MCPs locally, creates a tunnel
-      to Subhosting, serves the dashboard on a public URL. Local DB stays local,
-      dashboard is shareable. One call → one link.
 - [ ] Sync rule composition (chains: A → B → C)
+
+### Long-term — Scale and distribution
+
+- [ ] Managed mode: deploy dashboard to Deno Deploy with a shareable URL.
+      Cloud-native MCPs (SaaS APIs) run as Subhosting workers.
+      Local-data MCPs (DB) connect via tunnel (local → cloud relay via WebSocket).
 - [ ] Multi-tenant cluster management
 - [ ] Dashboard hot-reload (template changes without restart)
 
