@@ -181,7 +181,9 @@ const resources = collector.getResources();
 
 ## MCP Server Integration
 
-To make your MCP server composable, declare `emits` and `accepts` on each tool using `uiMeta()`:
+### Declaring composable tools
+
+Use `uiMeta()` to declare `emits` and `accepts` on your tools:
 
 ```typescript
 import { uiMeta } from "@casys/mcp-compose/sdk";
@@ -189,101 +191,94 @@ import { uiMeta } from "@casys/mcp-compose/sdk";
 const tools = [
   {
     name: "einvoice_invoice_search",
-    description: "Search invoices",
-    inputSchema: { /* ... */ },
     ...uiMeta({
       resourceUri: "ui://mcp-einvoice/doclist-viewer",
-      emits: ["invoice.selected", "invoice.updated"],
+      emits: ["invoice.selected"],
       accepts: ["filter.apply"],
     }),
-    handler: async (input, ctx) => { /* ... */ },
   },
 ];
 ```
 
-`uiMeta()` builds a typed `_meta.ui` object with standard SEP-1865 fields plus composition
-extensions (`emits`/`accepts`). You can also write `_meta` by hand if you prefer.
-
-### Generating a manifest
-
-Tool metadata can be extracted at build time into a static manifest, without starting the server
-or providing environment variables:
+If your server uses `@casys/mcp-server`, the helpers are re-exported:
 
 ```typescript
-// scripts/manifest.ts
-import { allTools } from "../src/tools/mod.ts";
-
-const manifest = {
-  name: "mcp-einvoice",
-  tools: allTools.map((t) => ({
-    name: t.name,
-    description: t.description,
-    emits: t._meta?.ui?.emits ?? [],
-    accepts: t._meta?.ui?.accepts ?? [],
-    resourceUri: t._meta?.ui?.resourceUri,
-  })),
-};
-
-console.log(JSON.stringify(manifest, null, 2));
+import { uiMeta, composeEvents } from "@casys/mcp-server";
 ```
-
-```bash
-deno task manifest  # outputs manifest.json
-```
-
-This manifest enables discovery: an agent can read the capabilities of all available MCP servers
-and propose sync rules (wiring) without starting any server.
 
 ### UI-side events with `composeEvents()`
 
-UIs can emit and listen to cross-UI events using `composeEvents()`:
+UIs emit and listen to cross-UI events via a dedicated `ui/compose/event` channel,
+separate from the MCP Apps protocol:
 
 ```typescript
 import { composeEvents } from "@casys/mcp-compose/sdk";
 
-// Create a compose channel (uses window.parent / window automatically)
 const events = composeEvents();
-
-// Emit an event (routed by the event bus via sync rules)
 events.emit("invoice.selected", { invoiceId: "INV-001" });
-
-// Listen for actions from other UIs
-const off = events.on("filter.apply", (payload) => {
-  applyFilter(payload.data);
-});
-
-// Cleanup when done
-events.destroy();
+events.on("filter.apply", (payload) => applyFilter(payload.data));
+events.destroy(); // cleanup
 ```
 
-`composeEvents()` uses a dedicated `ui/compose/event` JSON-RPC method via postMessage, completely
-separate from the MCP Apps protocol. It works alongside the ext-apps `App` class without
-interfering -- each protocol has its own channel.
+## Runtime — Dashboard from Templates
 
-### Distribution via MCP server framework
-
-MCP servers that depend on a shared server framework (e.g., `@casys/mcp-server`) can re-export
-mcp-compose helpers so that UI developers have a single dependency:
+The runtime module starts MCP servers, calls tools, and feeds results through
+the core pipeline to produce complete dashboards:
 
 ```typescript
-// In the MCP server framework
-export { composeEvents, uiMeta } from "@casys/mcp-compose/sdk";
+import { composeDashboardFromFiles } from "@casys/mcp-compose/runtime";
+
+const result = await composeDashboardFromFiles(
+  "./manifests/",              // directory of .json manifest files
+  "./dashboards/sales.yaml",   // YAML template
+  { customer_id: "CUST-001" }, // runtime args (replaces {{placeholders}})
+);
+await Deno.writeTextFile("dashboard.html", result.html);
 ```
 
-```typescript
-// In a UI component -- single import
-import { composeEvents } from "@casys/mcp-server/ui";
+### Manifest
+
+Each MCP server has a JSON manifest describing its transport and tools.
+Generated at build time — no server startup needed for discovery.
+
+```json
+{
+  "name": "mcp-einvoice",
+  "transport": { "type": "http", "url": "http://localhost:3015" },
+  "tools": [
+    { "name": "invoice_search", "emits": ["invoice.selected"], "accepts": ["filter.apply"] }
+  ]
+}
 ```
 
-mcp-compose becomes an implementation detail behind the server framework.
+Transport: `"stdio"` (cluster starts the process with `--http --port=0`) or
+`"http"` (connect to an existing server).
 
-### Integration steps
+### Template
 
-1. **Declare** `emits`/`accepts` on your tools (via `uiMeta()` or raw `_meta`)
-2. **Generate** a static manifest at build time
-3. **Discover** -- mcp-compose reads manifests to understand available capabilities
-4. **Compose** -- an agent or developer creates an orchestration (layout + sync rules)
-5. **Render** -- the runtime starts the required MCPs and produces a composite dashboard
+Dashboard templates are YAML — typically generated by an agent, not written by hand.
+`{{placeholders}}` are replaced with runtime args at compose time.
+
+```yaml
+name: Sales Dashboard
+sources:
+  - manifest: mcp-einvoice
+    calls:
+      - tool: invoice_search
+        args: { customer_id: "{{customer_id}}" }
+  - manifest: mcp-dataviz
+    calls:
+      - tool: render_chart
+orchestration:
+  layout: split
+  sync:
+    - from: "mcp-einvoice:invoice_search"
+      event: invoice.selected
+      to: "mcp-dataviz:render_chart"
+      action: data.update
+  sharedContext:
+    - customer_id
+```
 
 ## Event Bus Protocol
 
@@ -299,6 +294,8 @@ All messages use JSON-RPC 2.0 via `postMessage`.
 
 ## Error Codes
 
+**Core errors (`ErrorCode`):**
+
 | Code                    | Description                            |
 | ----------------------- | -------------------------------------- |
 | `ORPHAN_SYNC_REFERENCE` | Sync rule references unknown tool name |
@@ -307,6 +304,18 @@ All messages use JSON-RPC 2.0 via `postMessage`.
 | `MISSING_RESOURCE_URI`  | Missing resourceUri in UI metadata     |
 | `NO_UI_METADATA`        | Tool result has no UI metadata         |
 | `EMPTY_RESOURCES`       | No resources provided to composer      |
+
+**Runtime errors (`RuntimeErrorCode`):**
+
+| Code                    | Description                            |
+| ----------------------- | -------------------------------------- |
+| `MANIFEST_PARSE_ERROR`  | Invalid manifest JSON or structure     |
+| `TEMPLATE_PARSE_ERROR`  | Invalid template YAML or structure     |
+| `MANIFEST_NOT_FOUND`    | Template references unknown manifest   |
+| `PROCESS_START_FAILED`  | MCP server failed to start             |
+| `TOOL_CALL_FAILED`      | HTTP tool call returned an error       |
+| `TOOL_CALL_TIMEOUT`     | Tool call exceeded timeout             |
+| `PROCESS_DIED`          | Server process exited unexpectedly     |
 
 ## Development
 

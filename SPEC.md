@@ -171,15 +171,29 @@ Implemented today:
 
 Future work remains possible, but it should stay within the primitive/product boundary above.
 
-## Future Work
+## Roadmap
 
+### Next — Enable first real dashboard
+
+- [ ] Add `emits`/`accepts` to mcp-einvoice tools (via `uiMeta()`)
+- [ ] Add `composeEvents()` to mcp-einvoice UIs (invoice-viewer, doclist-viewer)
+- [ ] Generate manifest for mcp-einvoice (`deno task manifest`)
+- [ ] Runtime integration tests with a mock MCP server (HTTP transport)
+- [ ] End-to-end test: manifest + template + cluster → rendered dashboard
+
+### Short-term — Composition features
+
+- [ ] Sync rule auto-discovery from manifests (propose wiring from emits/accepts)
+- [ ] Dashboard persistence (save/load templates as YAML)
+- [ ] Conditional sync (event data matching, e.g., filter by field value)
 - [ ] Bidirectional sync rules
-- [ ] Conditional sync (event data matching)
-- [ ] Sync rule composition (chains)
-- [ ] Dashboard persistence (save/load templates)
-- [ ] Runtime integration tests with mock MCP server
-- [ ] Managed mode (Deno Subhosting)
-- [ ] Sync rule auto-discovery from manifests
+
+### Medium-term — Scale and distribution
+
+- [ ] Managed mode (Deno Subhosting for shareable dashboards)
+- [ ] Sync rule composition (chains: A → B → C)
+- [ ] Multi-tenant cluster management
+- [ ] Dashboard hot-reload (template changes without restart)
 
 ## Source Reference
 
