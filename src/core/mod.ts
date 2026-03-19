@@ -21,7 +21,13 @@ export type {
   ValidationResult,
 } from "./types/mod.ts";
 
-export { ErrorCode, isValidLayout, UI_LAYOUTS } from "./types/mod.ts";
+export {
+  ErrorCode,
+  isLayoutAreas,
+  isLayoutPreset,
+  isValidLayout,
+  UI_LAYOUT_PRESETS,
+} from "./types/mod.ts";
 
 // Collector
 export { createCollector, extractUiMeta } from "./collector/mod.ts";

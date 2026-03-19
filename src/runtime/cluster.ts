@@ -301,10 +301,12 @@ async function detectListenUrl(
   const decoder = new TextDecoder();
   const reader = stderr.getReader();
   let buffer = "";
+  let timerId: number;
 
   const timeout = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timerId = setTimeout(() => {
       reader.releaseLock();
+      drainStream(stderr);
       reject({
         code: RuntimeErrorCode.PROCESS_START_FAILED,
         message: `Server "${serverName}" did not report a listening URL within ${timeoutMs}ms`,
@@ -314,32 +316,33 @@ async function detectListenUrl(
   });
 
   const detect = async (): Promise<string> => {
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        throw {
-          code: RuntimeErrorCode.PROCESS_DIED,
-          message: `Server "${serverName}" exited before reporting a listening URL. Stderr: ${buffer}`,
-          server: serverName,
-        } satisfies RuntimeError;
-      }
-
-      buffer += decoder.decode(value, { stream: true });
-
-      // Check each line for a URL
-      const lines = buffer.split("\n");
-      for (const line of lines) {
-        const match = line.match(LISTEN_URL_PATTERN);
-        if (match) {
-          reader.releaseLock();
-          // Drain remaining stderr in background (prevent pipe pressure)
-          drainStream(stderr);
-          return match[1].replace(/\/+$/, "");
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          throw {
+            code: RuntimeErrorCode.PROCESS_DIED,
+            message: `Server "${serverName}" exited before reporting a listening URL. Stderr: ${buffer}`,
+            server: serverName,
+          } satisfies RuntimeError;
         }
-      }
 
-      // Keep only the last incomplete line in buffer
-      buffer = lines[lines.length - 1];
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n");
+        for (const line of lines) {
+          const match = line.match(LISTEN_URL_PATTERN);
+          if (match) {
+            reader.releaseLock();
+            drainStream(stderr);
+            return match[1].replace(/\/+$/, "");
+          }
+        }
+
+        buffer = lines[lines.length - 1];
+      }
+    } finally {
+      clearTimeout(timerId!);
     }
   };
 
@@ -352,7 +355,8 @@ function drainStream(stream: ReadableStream<Uint8Array>): void {
   (async () => {
     try {
       while (!(await reader.read()).done) { /* discard */ }
-    } catch { /* stream closed, ignore */ }
+    } catch { /* stream closed */ }
+    finally { reader.releaseLock(); }
   })();
 }
 
@@ -402,6 +406,9 @@ function createStdioConnection(
   };
 }
 
+/** Per-connection JSON-RPC request ID counter. */
+let _nextRpcId = 1;
+
 /** Call a tool via HTTP POST to the MCP server. */
 async function httpCallTool(
   serverName: string,
@@ -412,7 +419,7 @@ async function httpCallTool(
 ): Promise<unknown> {
   const body = JSON.stringify({
     jsonrpc: "2.0",
-    id: 1,
+    id: _nextRpcId++,
     method: "tools/call",
     params: { name: toolName, arguments: args ?? {} },
   });

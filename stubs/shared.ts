@@ -4,6 +4,8 @@
  * @module stubs/shared
  */
 
+import type { ConcurrentMCPServer } from "@casys/mcp-server";
+
 /** MCP Apps MIME type for HTML UI resources. */
 export const MCP_APP_MIME_TYPE = "text/html;profile=mcp-app";
 
@@ -42,7 +44,46 @@ function composeEvents() {
 }`;
 
 /**
+ * Start a stub server with HTTP + /ui route.
+ * Shared boilerplate for all stubs.
+ */
+export async function startStubServer(
+  server: ConcurrentMCPServer,
+  defaultPort: number,
+): Promise<void> {
+  const cliArgs = Deno.args;
+  const portArg = cliArgs.find((a) => a.startsWith("--port="));
+  const port = portArg ? parseInt(portArg.split("=")[1], 10) : defaultPort;
+
+  if (cliArgs.includes("--http")) {
+    await server.startHttp({
+      port,
+      cors: true,
+      customRoutes: [{
+        method: "get" as const,
+        path: "/ui",
+        handler: async (req: Request) => {
+          const uri = new URL(req.url).searchParams.get("uri");
+          if (!uri) return new Response("Missing uri", { status: 400 });
+          const content = await server.readResourceContent(uri);
+          if (!content) return new Response("Not found", { status: 404 });
+          return new Response(content.text, { headers: { "Content-Type": "text/html" } });
+        },
+      }],
+      onListen: (info: { hostname: string; port: number }) => {
+        console.error(`[${server.name}] HTTP server listening on http://${info.hostname}:${info.port}`);
+      },
+    });
+  } else {
+    await server.start();
+  }
+}
+
+/**
  * Wrap HTML body content into a complete HTML5 document with composeEvents inlined.
+ *
+ * NOTE: COMPOSE_EVENTS_JS is a browser-compatible copy of src/sdk/compose-events.ts.
+ * Keep in sync manually — see SYNC marker below.
  */
 export function buildStubHtml(title: string, bodyHtml: string, script: string): string {
   return `<!DOCTYPE html>

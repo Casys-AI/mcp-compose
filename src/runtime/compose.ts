@@ -78,32 +78,35 @@ export async function composeDashboard(
     // 3. Call tools and collect UI resources
     const collector = createCollector();
 
-    for (const source of template.sources) {
-      const resolvedCalls = injectArgs(source.calls, args ?? {});
+    // Call tools in parallel across sources, sequential within each source
+    await Promise.all(
+      template.sources.map(async (source) => {
+        const resolvedCalls = injectArgs(source.calls, args ?? {});
 
-      for (const call of resolvedCalls) {
-        const qualifiedName = `${source.manifest}:${call.tool}`;
+        for (const call of resolvedCalls) {
+          const qualifiedName = `${source.manifest}:${call.tool}`;
 
-        try {
-          const result = await cluster.callTool(
-            source.manifest,
-            call.tool,
-            call.args,
-          );
-          const collected = collector.collect(qualifiedName, result, call.args);
-          if (!collected) {
+          try {
+            const result = await cluster.callTool(
+              source.manifest,
+              call.tool,
+              call.args,
+            );
+            const collected = collector.collect(qualifiedName, result, call.args);
+            if (!collected) {
+              warnings.push(
+                `Tool "${qualifiedName}" did not return UI metadata (_meta.ui.resourceUri)`,
+              );
+            }
+          } catch (e) {
+            const err = e as RuntimeError;
             warnings.push(
-              `Tool "${qualifiedName}" did not return UI metadata (_meta.ui.resourceUri)`,
+              `Tool "${qualifiedName}" call failed: ${err.message ?? String(e)}`,
             );
           }
-        } catch (e) {
-          const err = e as RuntimeError;
-          warnings.push(
-            `Tool "${qualifiedName}" call failed: ${err.message ?? String(e)}`,
-          );
         }
-      }
-    }
+      }),
+    );
 
     // 4. Resolve ui:// URIs to real HTTP URLs
     const resources = collector.getResources().map((resource) => {

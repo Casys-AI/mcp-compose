@@ -73,10 +73,24 @@ The manifest can then declare:
 - `runtime/` for composing the dashboard before deploying
 - `core/` for types
 
-## Design
+## Design decisions
 
-- Deploy is opt-in — local composition works without it
-- Ephemeral by default — resources are cleaned up on teardown
-- One relay per dashboard (not shared) — isolates sessions
-- Local tunnel is outbound-only (no port forwarding, firewall-friendly)
-- Env vars are stored in Deploy (protected), never in the dashboard HTML
+- **Deploy is opt-in**: The library works fully in local mode. Deploy adds
+  shareability but is not required for composition or preview.
+
+- **One relay per dashboard**: Sharing a relay across dashboards would
+  create session routing complexity and cross-tenant risks. Each deploy
+  gets its own relay worker — simple, isolated, deletable.
+
+- **Outbound-only tunnel**: The local SDK connects TO the relay (outbound
+  WebSocket), not the other way around. No port forwarding, no firewall
+  config, no VPN. Like Tailscale — the connection is initiated from inside
+  the network, not from outside.
+
+- **Deno Deploy over custom infra**: Deploy provides free-tier hosting,
+  WebSocket support, KV for session state, and programmatic project creation
+  via REST API. No servers to manage.
+
+- **Env vars in Deploy, never in HTML**: Credentials are stored in the
+  Deploy project's env vars (encrypted at rest). The dashboard HTML never
+  contains credentials — it only contains iframe URLs pointing to the relay.

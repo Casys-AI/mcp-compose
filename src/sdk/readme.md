@@ -25,11 +25,16 @@ Provides three capabilities:
    separate from the MCP Apps protocol. Works alongside the ext-apps `App`
    class without interfering. Provides `emit()`, `on()`, and `destroy()`.
 
-## Design
+## Design decisions
 
-- Uses structural typing (no SDK import required).
-- Delegates structural validation to core sync validator.
-- Zero-dependency: only imports from `../core/`.
-- Pure functions, no I/O.
-- `composeEvents()` uses its own JSON-RPC method (`ui/compose/event`),
-  avoiding conflation with MCP Apps protocol methods.
+- **Structural typing over imports**: `composeEvents()` uses duck typing
+  instead of importing `@modelcontextprotocol/ext-apps`. This avoids a
+  runtime dependency and lets any postMessage-compatible object work.
+
+- **Dedicated `ui/compose/event` method**: MCP Apps uses `ui/update-model-context`
+  for context sharing and `ui/notifications/tool-result` for tool results.
+  Piggy-backing compose events on these methods would conflate cross-UI routing
+  with standard protocol semantics. A dedicated method keeps both protocols
+  independent — no interference, no ambiguity on the receiving end.
+
+- **Zero-dependency**: only imports from `../core/`. Pure functions, no I/O.

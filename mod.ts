@@ -45,7 +45,7 @@ export type {
   ValidationResult,
 } from "./src/core/types/mod.ts";
 
-export { ErrorCode, isValidLayout, UI_LAYOUTS } from "./src/core/types/mod.ts";
+export { ErrorCode, isValidLayout, UI_LAYOUT_PRESETS } from "./src/core/types/mod.ts";
 
 export { createCollector, extractUiMeta } from "./src/core/collector/mod.ts";
 export type { UiCollector } from "./src/core/collector/mod.ts";

@@ -7,7 +7,7 @@
  */
 
 import { ConcurrentMCPServer } from "@casys/mcp-server";
-import { buildStubHtml, MCP_APP_MIME_TYPE } from "../shared.ts";
+import { buildStubHtml, MCP_APP_MIME_TYPE, startStubServer } from "../shared.ts";
 
 // Env var check (tests the requiredEnv flow)
 const apiKey = Deno.env.get("STUB_API_KEY");
@@ -105,32 +105,4 @@ server.registerResource(
   }),
 );
 
-// Start
-const args = Deno.args;
-const httpFlag = args.includes("--http");
-const portArg = args.find((a) => a.startsWith("--port="));
-const port = portArg ? parseInt(portArg.split("=")[1], 10) : 3022;
-
-if (httpFlag) {
-  await server.startHttp({
-    port,
-    cors: true,
-    customRoutes: [{
-      method: "get" as const,
-      path: "/ui",
-      handler: async (req: Request) => {
-        const url = new URL(req.url);
-        const uri = url.searchParams.get("uri");
-        if (!uri) return new Response("Missing uri", { status: 400 });
-        const content = await server.readResourceContent(uri);
-        if (!content) return new Response("Not found", { status: 404 });
-        return new Response(content.text, { headers: { "Content-Type": "text/html" } });
-      },
-    }],
-    onListen: (info: { hostname: string; port: number }) => {
-      console.error(`[stub-list] HTTP server listening on http://${info.hostname}:${info.port}`);
-    },
-  });
-} else {
-  await server.start();
-}
+await startStubServer(server, 3022);

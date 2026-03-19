@@ -6,7 +6,7 @@
  */
 
 import { ConcurrentMCPServer } from "@casys/mcp-server";
-import { buildStubHtml, MCP_APP_MIME_TYPE } from "../shared.ts";
+import { buildStubHtml, MCP_APP_MIME_TYPE, startStubServer } from "../shared.ts";
 
 const ITEMS: Record<string, { id: string; name: string; category: string; price: number; description: string }> = {
   "ITEM-001": { id: "ITEM-001", name: "Alpha Widget", category: "widgets", price: 29.99, description: "A high-quality alpha widget for daily use." },
@@ -80,32 +80,4 @@ server.registerResource(
   }),
 );
 
-// Start
-const args = Deno.args;
-const httpFlag = args.includes("--http");
-const portArg = args.find((a) => a.startsWith("--port="));
-const port = portArg ? parseInt(portArg.split("=")[1], 10) : 3023;
-
-if (httpFlag) {
-  await server.startHttp({
-    port,
-    cors: true,
-    customRoutes: [{
-      method: "get" as const,
-      path: "/ui",
-      handler: async (req: Request) => {
-        const url = new URL(req.url);
-        const uri = url.searchParams.get("uri");
-        if (!uri) return new Response("Missing uri", { status: 400 });
-        const content = await server.readResourceContent(uri);
-        if (!content) return new Response("Not found", { status: 404 });
-        return new Response(content.text, { headers: { "Content-Type": "text/html" } });
-      },
-    }],
-    onListen: (info: { hostname: string; port: number }) => {
-      console.error(`[stub-detail] HTTP server listening on http://${info.hostname}:${info.port}`);
-    },
-  });
-} else {
-  await server.start();
-}
+await startStubServer(server, 3023);
