@@ -63,6 +63,8 @@ src/
     template.ts   — Parse YAML templates, validate, inject {{args}}
     cluster.ts    — Start/connect MCP servers, tool calls via HTTP
     compose.ts    — composeDashboard() orchestrator
+  deploy/         — Cloud deployment (Deno Deploy API, relay, tunnel)
+    types.ts      — DeployTransport, DeployRequest, DeployResult, TunnelConnection
 ```
 
 ## Dependency Rules
@@ -71,6 +73,7 @@ src/
 - `sdk/` imports from `core/` only
 - `host/` imports from `core/` and `sdk/` (for COMPOSE_EVENT_METHOD constant)
 - `runtime/` imports from `core/`, `host/`, and `sdk/`
+- `deploy/` imports from `runtime/`, `core/`, and Deno Deploy API
 - No circular dependencies between layers
 
 ## Event Bus Protocol

@@ -6,7 +6,8 @@
     "./core": "./src/core/mod.ts",
     "./sdk": "./src/sdk/mod.ts",
     "./host": "./src/host/mod.ts",
-    "./runtime": "./src/runtime/mod.ts"
+    "./runtime": "./src/runtime/mod.ts",
+    "./deploy": "./src/deploy/mod.ts"
   },
   "publish": {
     "include": ["mod.ts", "src/**/*.ts", "README.md", "LICENSE"],

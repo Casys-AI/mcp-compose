@@ -61,7 +61,7 @@ Deno.test("pipeline - full-dashboard template validates", async () => {
 
   const result = validateTemplate(template, manifests);
   assertEquals(result.valid, true, `Errors: ${result.errors.join("; ")}`);
-  assertEquals(template.orchestration.layout, "grid");
+  assertEquals(typeof template.orchestration.layout, "object"); // areas layout
   assertEquals(template.orchestration.sync?.length, 3);
   assertEquals(template.sources.length, 4);
 });

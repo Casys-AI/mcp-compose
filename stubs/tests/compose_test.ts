@@ -82,7 +82,7 @@ Deno.test({ name: "compose e2e - full dashboard (4 stubs, grid, 3 sync)", ...TES
 
   const result = await composeDashboard({ template, manifests });
 
-  assertEquals(result.descriptor.layout, "grid");
+  assertEquals(typeof result.descriptor.layout, "object"); // areas layout
   assertEquals(result.descriptor.children.length, 4);
   assertEquals(result.descriptor.sync.length, 3);
 
@@ -90,7 +90,7 @@ Deno.test({ name: "compose e2e - full dashboard (4 stubs, grid, 3 sync)", ...TES
     assertStringIncludes(child.resourceUri, "http://");
   }
 
-  assertStringIncludes(result.html, "layout-grid");
+  assertStringIncludes(result.html, "layout-areas");
   assertStringIncludes(result.html, "syncRules");
   assertStringIncludes(result.html, "COMPOSE_METHOD");
 }});
