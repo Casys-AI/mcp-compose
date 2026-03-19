@@ -114,7 +114,17 @@ export async function composeDashboard(
       return { ...resource, resourceUri: resolved };
     });
 
-    // 5. Build composite + render
+    // 5. Build area map (source qualified name → area id)
+    const areaMap: Record<string, string> = {};
+    for (const source of template.sources) {
+      if (source.id) {
+        for (const call of source.calls) {
+          areaMap[`${source.manifest}:${call.tool}`] = source.id;
+        }
+      }
+    }
+
+    // 6. Build composite + render
     const orchestration = {
       layout: template.orchestration.layout,
       sync: template.orchestration.sync,
@@ -122,6 +132,9 @@ export async function composeDashboard(
     };
 
     const descriptor = buildCompositeUi(resources, orchestration);
+    if (Object.keys(areaMap).length > 0) {
+      descriptor.areaMap = areaMap;
+    }
     const html = renderComposite(descriptor);
 
     return { descriptor, html, warnings };

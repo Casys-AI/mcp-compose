@@ -1,20 +1,30 @@
 name: Full Stub Dashboard
 sources:
-  - manifest: stub-filter
+  - id: filter
+    manifest: stub-filter
     calls:
       - tool: show_filters
-  - manifest: stub-list
+  - id: list
+    manifest: stub-list
     calls:
       - tool: list_items
-  - manifest: stub-detail
+  - id: detail
+    manifest: stub-detail
     calls:
       - tool: show_item
         args: { itemId: "ITEM-001" }
-  - manifest: stub-chart
+  - id: chart
+    manifest: stub-chart
     calls:
       - tool: render_chart
 orchestration:
-  layout: grid
+  layout:
+    areas:
+      - [filter, list, detail]
+      - [filter, chart, chart]
+    columns: [1, 2, 2]
+    rows: [3, 1]
+    gap: normal
   sync:
     - from: "stub-filter:show_filters"
       event: "filter.changed"

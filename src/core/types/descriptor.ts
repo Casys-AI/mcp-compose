@@ -46,4 +46,7 @@ export interface CompositeUiDescriptor {
 
   /** Shared context injected into all child UIs. */
   sharedContext?: Record<string, unknown>;
+
+  /** Mapping of source name to area name (for areas layout). */
+  areaMap?: Record<string, string>;
 }

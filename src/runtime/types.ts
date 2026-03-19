@@ -199,6 +199,8 @@ export interface TemplateToolCall {
  * A source MCP server referenced by a dashboard template.
  */
 export interface TemplateSource {
+  /** Short ID for use in layout areas grid. */
+  id?: string;
   /** Manifest name (must match an McpManifest.name). */
   manifest: string;
   /** Tools to call on this server. */

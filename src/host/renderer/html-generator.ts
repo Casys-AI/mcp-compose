@@ -6,6 +6,7 @@
 
 import type { CompositeUiDescriptor } from "../../core/types/descriptor.ts";
 import type { CollectedUiResource } from "../../core/types/resources.ts";
+import { isLayoutAreas } from "../../core/types/layout.ts";
 import { getBaseCss } from "./css/base.ts";
 import { getLayoutCss } from "./css/layouts.ts";
 import { generateEventBusScript } from "./js/event-bus.ts";
@@ -58,12 +59,37 @@ export function renderComposite(descriptor: CompositeUiDescriptor): string {
 }
 
 function generateBodyContent(descriptor: CompositeUiDescriptor): string {
+  if (isLayoutAreas(descriptor.layout)) {
+    return generateAreasLayout(descriptor);
+  }
+
   if (descriptor.layout === "tabs") {
     return generateTabsLayout(descriptor);
   }
 
-  const iframesHtml = descriptor.children.map(generateIframe).join("\n    ");
+  const iframesHtml = descriptor.children.map((c) => generateIframe(c)).join("\n    ");
   return `<div class="layout-${descriptor.layout}" id="container">
+    ${iframesHtml}
+  </div>`;
+}
+
+function generateAreasLayout(descriptor: CompositeUiDescriptor): string {
+  const areaMap = descriptor.areaMap ?? {};
+  const iframesHtml = descriptor.children
+    .map((child) => {
+      const area = areaMap[child.source] ?? child.source;
+      return `<iframe
+        id="ui-${child.slot}"
+        src="${escapeAttr(child.resourceUri)}"
+        data-slot="${child.slot}"
+        data-source="${escapeAttr(child.source)}"
+        data-area="${escapeAttr(area)}"
+        sandbox="allow-scripts allow-same-origin"
+      ></iframe>`;
+    })
+    .join("\n    ");
+
+  return `<div class="layout-areas" id="container">
     ${iframesHtml}
   </div>`;
 }
