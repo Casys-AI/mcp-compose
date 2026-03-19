@@ -37,8 +37,10 @@ const DEFAULT_STARTUP_TIMEOUT_MS = 15_000;
 /** Default timeout for tool calls (ms). */
 const DEFAULT_TOOL_CALL_TIMEOUT_MS = 30_000;
 
-/** Pattern to detect the HTTP listening URL from server stderr. */
-const LISTEN_URL_PATTERN = /https?:\/\/[^\s]+/;
+/** Pattern to detect the HTTP listening URL from server stderr.
+ * Matches "listening on http://host:port" to avoid false positives
+ * from warning messages containing URLs. */
+const LISTEN_URL_PATTERN = /listening on (https?:\/\/[^\s]+)/;
 
 /**
  * Connect to an already-running MCP server via HTTP.
@@ -146,6 +148,9 @@ export async function startServer(
       cause,
     } satisfies RuntimeError;
   }
+
+  // Drain stdout in background (we don't use it, prevent pipe pressure)
+  drainStream(process.stdout);
 
   // Read stderr to find the listening URL
   const baseUrl = await detectListenUrl(
@@ -287,7 +292,7 @@ async function detectListenUrl(
           reader.releaseLock();
           // Drain remaining stderr in background (prevent pipe pressure)
           drainStream(stderr);
-          return match[0].replace(/\/+$/, "");
+          return match[1].replace(/\/+$/, "");
         }
       }
 
