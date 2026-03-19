@@ -101,9 +101,27 @@ src/runtime/
 
 ## Travail futur
 
-- [ ] Tests d'intégration avec un vrai serveur MCP mock
-- [ ] Mode managed (Deno Subhosting) pour dashboards partagés
+- [x] Tests d'intégration avec stubs MCP (done: 4 stubs, 16 tests e2e)
+- [ ] SDK comme routeur intelligent (Tailscale for MCPs)
 - [ ] Dashboard persistence (save/load templates)
 - [ ] Sync rule auto-discovery depuis emits/accepts des manifestes
+
+## Vision : SDK as intelligent router
+
+Le SDK mcp-compose évolue vers un daemon local qui fait le pont entre les
+données locales et les dashboards en ligne. Comme Tailscale crée un mesh
+entre machines, le SDK crée un mesh entre MCPs et dashboards.
+
+Deux types de MCPs coexistent :
+
+| Type | Où tourne le MCP | Données | Tunnel |
+|---|---|---|---|
+| **Cloud-native** (einvoice/Iopole) | Subhosting worker | API SaaS (déjà en ligne) | Non |
+| **Local-data** (ERPNext Docker, postgres) | Machine du user | DB locale | Oui (WebSocket) |
+
+Le SDK gère les deux de manière transparente. L'utilisateur fait
+`mcp-compose connect`, le SDK démarre les MCPs locaux, ouvre le tunnel,
+et sert le dashboard sur une URL partageable. Les données ne quittent
+pas le réseau local — seules les réponses aux tool calls remontent.
 
 *Dernière mise à jour : 2026-03-19*

@@ -197,12 +197,30 @@ Future work remains possible, but it should stay within the primitive/product bo
 - [ ] Bidirectional sync rules
 - [ ] Sync rule composition (chains: A → B → C)
 
-### Long-term — Scale and distribution
+### Long-term — SDK as intelligent router (Tailscale for MCPs)
 
-- [ ] Managed mode: deploy dashboard to Deno Deploy with a shareable URL.
-      Cloud-native MCPs (SaaS APIs) run as Subhosting workers.
-      Local-data MCPs (DB) connect via tunnel (local → cloud relay via WebSocket).
-- [ ] Multi-tenant cluster management
+The SDK becomes a local daemon that bridges local data sources to online dashboards.
+Like Tailscale creates a mesh between machines, the SDK creates a mesh between MCPs
+and dashboards — regardless of where data lives.
+
+Architecture:
+```
+mcp-compose connect
+  → SDK starts local MCPs (Docker ERPNext, postgres, etc.)
+  → SDK opens outbound WebSocket to cloud relay (no port forwarding needed)
+  → Dashboard served at https://dashboard-xxx.casys.dev
+  → Tool calls from dashboard → relay → WebSocket → SDK local → MCP → DB
+  → Data never leaves the local network (only query results travel)
+```
+
+Milestones:
+- [ ] `mcp-compose connect` — local daemon that starts MCPs + opens tunnel
+- [ ] Cloud relay worker (Deno Deploy) — routes HTTP ↔ WebSocket per session
+- [ ] Cloud-native MCPs (SaaS APIs like Iopole) run as Subhosting workers
+      (no tunnel needed, MCP runs in the cloud with user credentials)
+- [ ] Local-data MCPs (ERPNext Docker, postgres) connect via tunnel
+- [ ] Shareable dashboard URLs — one link, data stays local
+- [ ] Multi-tenant session management
 - [ ] Dashboard hot-reload (template changes without restart)
 
 ## Source Reference
