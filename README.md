@@ -179,12 +179,119 @@ collector.inner.collect("manual", rawResult);
 const resources = collector.getResources();
 ```
 
+## MCP Server Integration
+
+To make your MCP server composable, declare `emits` and `accepts` on each tool using `uiMeta()`:
+
+```typescript
+import { uiMeta } from "@casys/mcp-compose/sdk";
+
+const tools = [
+  {
+    name: "einvoice_invoice_search",
+    description: "Search invoices",
+    inputSchema: { /* ... */ },
+    ...uiMeta({
+      resourceUri: "ui://mcp-einvoice/doclist-viewer",
+      emits: ["invoice.selected", "invoice.updated"],
+      accepts: ["filter.apply"],
+    }),
+    handler: async (input, ctx) => { /* ... */ },
+  },
+];
+```
+
+`uiMeta()` builds a typed `_meta.ui` object with standard SEP-1865 fields plus composition
+extensions (`emits`/`accepts`). You can also write `_meta` by hand if you prefer.
+
+### Generating a manifest
+
+Tool metadata can be extracted at build time into a static manifest, without starting the server
+or providing environment variables:
+
+```typescript
+// scripts/manifest.ts
+import { allTools } from "../src/tools/mod.ts";
+
+const manifest = {
+  name: "mcp-einvoice",
+  tools: allTools.map((t) => ({
+    name: t.name,
+    description: t.description,
+    emits: t._meta?.ui?.emits ?? [],
+    accepts: t._meta?.ui?.accepts ?? [],
+    resourceUri: t._meta?.ui?.resourceUri,
+  })),
+};
+
+console.log(JSON.stringify(manifest, null, 2));
+```
+
+```bash
+deno task manifest  # outputs manifest.json
+```
+
+This manifest enables discovery: an agent can read the capabilities of all available MCP servers
+and propose sync rules (wiring) without starting any server.
+
+### UI-side events with `composeEvents()`
+
+UIs can emit and listen to cross-UI events using `composeEvents()`:
+
+```typescript
+import { composeEvents } from "@casys/mcp-compose/sdk";
+
+// Create a compose channel (uses window.parent / window automatically)
+const events = composeEvents();
+
+// Emit an event (routed by the event bus via sync rules)
+events.emit("invoice.selected", { invoiceId: "INV-001" });
+
+// Listen for actions from other UIs
+const off = events.on("filter.apply", (payload) => {
+  applyFilter(payload.data);
+});
+
+// Cleanup when done
+events.destroy();
+```
+
+`composeEvents()` uses a dedicated `ui/compose/event` JSON-RPC method via postMessage, completely
+separate from the MCP Apps protocol. It works alongside the ext-apps `App` class without
+interfering -- each protocol has its own channel.
+
+### Distribution via MCP server framework
+
+MCP servers that depend on a shared server framework (e.g., `@casys/mcp-server`) can re-export
+mcp-compose helpers so that UI developers have a single dependency:
+
+```typescript
+// In the MCP server framework
+export { composeEvents, uiMeta } from "@casys/mcp-compose/sdk";
+```
+
+```typescript
+// In a UI component -- single import
+import { composeEvents } from "@casys/mcp-server/ui";
+```
+
+mcp-compose becomes an implementation detail behind the server framework.
+
+### Integration steps
+
+1. **Declare** `emits`/`accepts` on your tools (via `uiMeta()` or raw `_meta`)
+2. **Generate** a static manifest at build time
+3. **Discover** -- mcp-compose reads manifests to understand available capabilities
+4. **Compose** -- an agent or developer creates an orchestration (layout + sync rules)
+5. **Render** -- the runtime starts the required MCPs and produces a composite dashboard
+
 ## Event Bus Protocol
 
 The rendered HTML includes a JavaScript event bus implementing:
 
 - **`ui/initialize`** -- Handshake with host capabilities (MCP Apps SEP-1865)
-- **`ui/update-model-context`** -- Routes events per sync rules
+- **`ui/compose/event`** -- Dedicated cross-UI event routing (mcp-compose protocol)
+- **`ui/update-model-context`** -- Routes events per sync rules (legacy)
 - **`ui/notifications/tool-result`** -- Forwards data to target UIs
 - **`ui/message`** -- Logging/debugging channel
 

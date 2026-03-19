@@ -16,3 +16,12 @@ export type {
   CompositionIssueCode,
   CompositionValidationResult,
 } from "./composition-validator.ts";
+
+export { composeEvents, COMPOSE_EVENT_METHOD } from "./compose-events.ts";
+export type {
+  ComposeEventHandler,
+  ComposeEventPayload,
+  ComposeEvents,
+  ComposeSource,
+  ComposeTarget,
+} from "./compose-events.ts";

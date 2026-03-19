@@ -20,9 +20,16 @@ Provides three capabilities:
    mismatched events/actions, and structural issues (delegated to core
    validator).
 
+4. **`composeEvents()`** — UI-side helper for cross-UI event routing.
+   Uses a dedicated `ui/compose/event` JSON-RPC method via postMessage,
+   separate from the MCP Apps protocol. Works alongside the ext-apps `App`
+   class without interfering. Provides `emit()`, `on()`, and `destroy()`.
+
 ## Design
 
 - Uses structural typing (no SDK import required).
 - Delegates structural validation to core sync validator.
 - Zero-dependency: only imports from `../core/`.
 - Pure functions, no I/O.
+- `composeEvents()` uses its own JSON-RPC method (`ui/compose/event`),
+  avoiding conflation with MCP Apps protocol methods.
