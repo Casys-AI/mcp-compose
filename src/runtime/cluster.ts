@@ -125,6 +125,19 @@ export async function startServer(
   const transport = manifest.transport;
   const timeoutMs = options?.timeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
 
+  // Validate required env vars before starting
+  if (manifest.requiredEnv?.length) {
+    const env = transport.env ?? {};
+    const missing = manifest.requiredEnv.filter((k) => !env[k] && !Deno.env.get(k));
+    if (missing.length > 0) {
+      throw {
+        code: RuntimeErrorCode.PROCESS_START_FAILED,
+        message: `Server "${manifest.name}" requires env vars: ${missing.join(", ")}`,
+        server: manifest.name,
+      } satisfies RuntimeError;
+    }
+  }
+
   // Append --http --port=0 if not already present
   const args = [...(transport.args ?? [])];
   if (!args.includes("--http")) args.push("--http");
@@ -188,6 +201,8 @@ export function createCluster(
 
   return {
     async startAll(): Promise<void> {
+      // Validate all manifests exist before starting anything
+      const resolvedManifests: McpManifest[] = [];
       for (const name of serverNames) {
         const manifest = manifests.get(name);
         if (!manifest) {
@@ -197,12 +212,39 @@ export function createCluster(
             server: name,
           } satisfies RuntimeError;
         }
+        resolvedManifests.push(manifest);
+      }
 
-        const conn = manifest.transport.type === "http"
-          ? await connectHttp(manifest)
-          : await startServer(manifest);
+      // Start all servers in parallel
+      const results = await Promise.allSettled(
+        resolvedManifests.map((manifest) =>
+          manifest.transport.type === "http"
+            ? connectHttp(manifest).then((conn) => ({ name: manifest.name, conn }))
+            : startServer(manifest).then((conn) => ({ name: manifest.name, conn }))
+        ),
+      );
 
-        connections.set(name, conn);
+      // Collect successes and failures
+      const failures: string[] = [];
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          connections.set(result.value.name, result.value.conn);
+        } else {
+          const err = result.reason as RuntimeError;
+          failures.push(err.message ?? String(result.reason));
+        }
+      }
+
+      // If any failed, clean up the ones that succeeded and throw
+      if (failures.length > 0) {
+        await Promise.allSettled(
+          [...connections.values()].map((conn) => conn.close()),
+        );
+        connections.clear();
+        throw {
+          code: RuntimeErrorCode.PROCESS_START_FAILED,
+          message: `Failed to start ${failures.length} server(s): ${failures.join("; ")}`,
+        } satisfies RuntimeError;
       }
     },
 

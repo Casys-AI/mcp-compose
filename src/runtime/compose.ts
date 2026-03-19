@@ -57,7 +57,7 @@ import type { RuntimeError } from "./types.ts";
 export async function composeDashboard(
   request: ComposeRequest,
 ): Promise<ComposeResult> {
-  const { template, manifests, args } = request;
+  const { template, manifests, args, keepAlive } = request;
   const warnings: string[] = [];
 
   // 1. Validate template against manifests
@@ -137,10 +137,17 @@ export async function composeDashboard(
     }
     const html = renderComposite(descriptor);
 
-    return { descriptor, html, warnings };
+    return {
+      descriptor,
+      html,
+      warnings,
+      cluster: keepAlive ? cluster : undefined,
+    };
   } finally {
-    // 6. Always stop cluster
-    await cluster.stopAll();
+    // Stop cluster unless keepAlive was requested
+    if (!keepAlive) {
+      await cluster.stopAll();
+    }
   }
 }
 

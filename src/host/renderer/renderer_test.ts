@@ -154,7 +154,7 @@ Deno.test("renderComposite - iframes have required attributes", () => {
   assertStringIncludes(html, 'data-source="viz:chart"');
   assertStringIncludes(html, 'src="ui://postgres/table/123"');
   assertStringIncludes(html, 'src="ui://viz/chart/456"');
-  assertStringIncludes(html, 'sandbox="allow-scripts allow-same-origin"');
+  assertStringIncludes(html, 'allow="clipboard-write"');
 });
 
 Deno.test("renderComposite - handles empty resources array", () => {

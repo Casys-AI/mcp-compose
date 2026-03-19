@@ -84,7 +84,7 @@ function generateAreasLayout(descriptor: CompositeUiDescriptor): string {
         data-slot="${child.slot}"
         data-source="${escapeAttr(child.source)}"
         data-area="${escapeAttr(area)}"
-        sandbox="allow-scripts allow-same-origin"
+        allow="clipboard-write"
       ></iframe>`;
     })
     .join("\n    ");
@@ -122,7 +122,7 @@ function generateTabsLayout(descriptor: CompositeUiDescriptor): string {
           src="${escapeAttr(child.resourceUri)}"
           data-slot="${child.slot}"
           data-source="${escapeAttr(child.source)}"
-          sandbox="allow-scripts allow-same-origin"
+          allow="clipboard-write"
         ></iframe>`,
     )
     .join("\n      ");
@@ -143,7 +143,7 @@ function generateIframe(child: CollectedUiResource): string {
         src="${escapeAttr(child.resourceUri)}"
         data-slot="${child.slot}"
         data-source="${escapeAttr(child.source)}"
-        sandbox="allow-scripts allow-same-origin"
+        allow="clipboard-write"
       ></iframe>`;
 }
 

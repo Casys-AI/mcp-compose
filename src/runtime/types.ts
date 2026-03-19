@@ -262,6 +262,8 @@ export interface ComposeRequest {
   manifests: Map<string, McpManifest>;
   /** Runtime arguments injected into `{{placeholder}}` values. */
   args?: Record<string, unknown>;
+  /** Keep the cluster alive after composition (for serving). Default: false. */
+  keepAlive?: boolean;
 }
 
 /**
@@ -274,6 +276,8 @@ export interface ComposeResult {
   html: string;
   /** Warnings generated during composition. */
   warnings: string[];
+  /** Cluster handle (only present if keepAlive was true). Call stopAll() when done. */
+  cluster?: McpCluster;
 }
 
 // =============================================================================
