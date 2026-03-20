@@ -1,7 +1,11 @@
 # MCP Compose clean break design
 
 Date: 2026-03-06
-Status: Approved
+Status: Completed
+
+> **Note (2026-03-19):** This refactor is complete. The renderer has since moved
+> from `core/renderer/` to `host/renderer/` (see commit 075b185). The rest of the
+> decisions remain in effect.
 
 ## Context
 

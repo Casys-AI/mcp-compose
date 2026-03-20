@@ -45,7 +45,7 @@ export type {
   ValidationResult,
 } from "./src/core/types/mod.ts";
 
-export { ErrorCode, isValidLayout, UI_LAYOUTS } from "./src/core/types/mod.ts";
+export { ErrorCode, isValidLayout, UI_LAYOUT_PRESETS } from "./src/core/types/mod.ts";
 
 export { createCollector, extractUiMeta } from "./src/core/collector/mod.ts";
 export type { UiCollector } from "./src/core/collector/mod.ts";
@@ -55,7 +55,7 @@ export type { ResolutionResult } from "./src/core/sync/mod.ts";
 
 export { buildCompositeUi } from "./src/core/composer/mod.ts";
 
-export { renderComposite } from "./src/core/renderer/mod.ts";
+export { renderComposite } from "./src/host/renderer/mod.ts";
 
 // SDK — MCP client adapters (optional convenience wrappers)
 export { createMcpSdkCollector } from "./src/sdk/mod.ts";
@@ -69,6 +69,15 @@ export type {
   CompositionIssue,
   CompositionIssueCode,
   CompositionValidationResult,
+} from "./src/sdk/mod.ts";
+
+export { composeEvents, COMPOSE_EVENT_METHOD } from "./src/sdk/mod.ts";
+export type {
+  ComposeEventHandler,
+  ComposeEventPayload,
+  ComposeEvents,
+  ComposeSource,
+  ComposeTarget,
 } from "./src/sdk/mod.ts";
 
 // Host — host integration types

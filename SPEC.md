@@ -110,18 +110,25 @@ lib/mcp-compose/
 ├── PRD.md                 # Product boundary and ownership
 ├── README.md              # Usage docs
 ├── src/
-│   ├── core/
+│   ├── core/              # Composition semantics (pure, no I/O)
 │   │   ├── types/
 │   │   ├── collector/
 │   │   ├── sync/
-│   │   ├── composer/
-│   │   └── renderer/
-│   ├── sdk/
+│   │   └── composer/
+│   ├── sdk/               # External shape adapters + compose events
 │   │   ├── mcp-sdk.ts
 │   │   ├── ui-meta-builder.ts
-│   │   └── composition-validator.ts
-│   ├── host/
-│   │   └── types.ts
+│   │   ├── composition-validator.ts
+│   │   └── compose-events.ts
+│   ├── host/              # Host contracts + renderer
+│   │   ├── types.ts
+│   │   └── renderer/
+│   ├── runtime/           # Dashboard composition from manifests + templates
+│   │   ├── types.ts
+│   │   ├── manifest.ts
+│   │   ├── template.ts
+│   │   ├── cluster.ts
+│   │   └── compose.ts
 │   ├── architecture_test.ts
 │   ├── edge-cases_test.ts
 │   ├── full-pipeline_test.ts
@@ -141,7 +148,8 @@ frameworks.
 The event bus implements:
 
 - `ui/initialize` — handshake with host capabilities
-- `ui/update-model-context` — context sharing between UIs
+- `ui/compose/event` — dedicated cross-UI event routing (mcp-compose protocol)
+- `ui/update-model-context` — context sharing between UIs (legacy)
 - `ui/notifications/tool-result` — forwarding results to target UIs
 - `ui/message` — logging/debugging channel
 
@@ -151,21 +159,69 @@ All messages follow JSON-RPC 2.0.
 
 Implemented today:
 
-- canonical `core / sdk / host` structure
+- canonical `core / sdk / host / runtime` structure
 - collector, sync, composer, and renderer pipeline
+- `composeEvents()` SDK with dedicated `ui/compose/event` protocol
+- `uiMeta()` builder for declaring emits/accepts
+- runtime: manifest parsing, template YAML, cluster management, HTTP transport
 - MCP SDK adaptation helpers
-- host contracts
-- test suite with cross-slice pipeline coverage
+- host contracts + renderer
+- test suite with cross-slice pipeline coverage (200+ tests)
 - JSR sync/publish automation
 
 Future work remains possible, but it should stay within the primitive/product boundary above.
 
-## Future Work
+## Roadmap
 
+### Next — Enable first real dashboard
+
+- [ ] Add `emits`/`accepts` to mcp-einvoice tools (via `uiMeta()`)
+- [ ] Add `composeEvents()` to mcp-einvoice UIs (invoice-viewer, doclist-viewer)
+- [ ] Generate manifest for mcp-einvoice (with `requiredEnv` + `transport`)
+- [ ] Runtime integration tests with a mock MCP server (HTTP transport)
+- [ ] End-to-end test: manifest + template + cluster → rendered dashboard
+
+### Short-term — CLI and user experience
+
+- [ ] CLI `mcp-compose compose` — design dashboards from manifests (no servers needed,
+      agent browses available tools/emits/accepts, generates template YAML)
+- [ ] CLI `mcp-compose deploy <template.yaml>` — fetch MCPs from JSR, prompt for
+      missing env vars (from `requiredEnv`), start servers, serve dashboard
+- [ ] Local credential storage (`.env` or keychain, per template)
+- [ ] Sync rule auto-discovery from manifests (propose wiring from emits/accepts)
+- [ ] Dashboard persistence (save/load templates as YAML)
+
+### Medium-term — Composition and sync
+
+- [ ] Conditional sync (event data matching, e.g., filter by field value)
 - [ ] Bidirectional sync rules
-- [ ] Conditional sync (event data matching)
-- [ ] Sync rule composition (chains)
-- [ ] Dashboard persistence (save/load descriptors)
+- [ ] Sync rule composition (chains: A → B → C)
+
+### Long-term — SDK as intelligent router (Tailscale for MCPs)
+
+The SDK becomes a local daemon that bridges local data sources to online dashboards.
+Like Tailscale creates a mesh between machines, the SDK creates a mesh between MCPs
+and dashboards — regardless of where data lives.
+
+Architecture:
+```
+mcp-compose connect
+  → SDK starts local MCPs (Docker ERPNext, postgres, etc.)
+  → SDK opens outbound WebSocket to cloud relay (no port forwarding needed)
+  → Dashboard served at https://dashboard-xxx.casys.dev
+  → Tool calls from dashboard → relay → WebSocket → SDK local → MCP → DB
+  → Data never leaves the local network (only query results travel)
+```
+
+Milestones:
+- [ ] `mcp-compose connect` — local daemon that starts MCPs + opens tunnel
+- [ ] Cloud relay worker (Deno Deploy) — routes HTTP ↔ WebSocket per session
+- [ ] Cloud-native MCPs (SaaS APIs like Iopole) run as Subhosting workers
+      (no tunnel needed, MCP runs in the cloud with user credentials)
+- [ ] Local-data MCPs (ERPNext Docker, postgres) connect via tunnel
+- [ ] Shareable dashboard URLs — one link, data stays local
+- [ ] Multi-tenant session management
+- [ ] Dashboard hot-reload (template changes without restart)
 
 ## Source Reference
 

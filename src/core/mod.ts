@@ -21,7 +21,13 @@ export type {
   ValidationResult,
 } from "./types/mod.ts";
 
-export { ErrorCode, isValidLayout, UI_LAYOUTS } from "./types/mod.ts";
+export {
+  ErrorCode,
+  isLayoutAreas,
+  isLayoutPreset,
+  isValidLayout,
+  UI_LAYOUT_PRESETS,
+} from "./types/mod.ts";
 
 // Collector
 export { createCollector, extractUiMeta } from "./collector/mod.ts";
@@ -34,5 +40,3 @@ export type { ResolutionResult } from "./sync/mod.ts";
 // Composer
 export { buildCompositeUi } from "./composer/mod.ts";
 
-// Renderer
-export { renderComposite } from "./renderer/mod.ts";

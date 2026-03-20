@@ -24,9 +24,12 @@ async function fileExists(relativePath: string): Promise<boolean> {
 const CORE_SLICE_DIRS = [
   "collector",
   "composer",
-  "renderer",
   "sync",
   "types",
+] as const;
+
+const HOST_SLICE_DIRS = [
+  "renderer",
 ] as const;
 
 const TOP_LEVEL_LAYERS = [
@@ -44,6 +47,19 @@ Deno.test("src architecture - core slices expose lowercase readme and contract d
     assert(
       await fileExists(`./core/${dir}/contract.md`),
       `Missing contract.md for core slice ${dir}`,
+    );
+  }
+});
+
+Deno.test("src architecture - host slices expose lowercase readme and contract docs", async () => {
+  for (const dir of HOST_SLICE_DIRS) {
+    assert(
+      await fileExists(`./host/${dir}/readme.md`),
+      `Missing readme.md for host slice ${dir}`,
+    );
+    assert(
+      await fileExists(`./host/${dir}/contract.md`),
+      `Missing contract.md for host slice ${dir}`,
     );
   }
 });
@@ -75,14 +91,14 @@ Deno.test("src architecture - public module structure exports canonical entrypoi
   assert(typeof pkg.validateSyncRules === "function", "pkg missing validateSyncRules");
   assert(typeof pkg.extractUiMeta === "function", "pkg missing extractUiMeta");
 
-  // Core re-exports same primitives
+  // Core re-exports composition primitives (no renderer)
   assert(typeof core.createCollector === "function", "core missing createCollector");
   assert(typeof core.buildCompositeUi === "function", "core missing buildCompositeUi");
-  assert(typeof core.renderComposite === "function", "core missing renderComposite");
 
   // SDK re-exports adapter
   assert(typeof sdk.createMcpSdkCollector === "function", "sdk missing createMcpSdkCollector");
 
-  // Host exports types (type-only, verify module loaded)
+  // Host exports renderer + types
   assert(host !== undefined, "host module failed to load");
+  assert(typeof host.renderComposite === "function", "host missing renderComposite");
 });

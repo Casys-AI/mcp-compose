@@ -5,7 +5,8 @@
  */
 
 export type { UiLayout } from "./layout.ts";
-export { isValidLayout, UI_LAYOUTS } from "./layout.ts";
+export { isLayoutAreas, isLayoutPreset, isValidLayout, UI_LAYOUT_PRESETS } from "./layout.ts";
+export type { UiLayoutAreas, UiLayoutGap, UiLayoutPreset } from "./layout.ts";
 
 export type { ResolvedSyncRule, UiSyncRule } from "./sync-rules.ts";
 

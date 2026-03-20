@@ -7,7 +7,7 @@
 import { assertEquals, assertStringIncludes } from "@std/assert";
 import { createCollector } from "./core/collector/mod.ts";
 import { buildCompositeUi } from "./core/composer/mod.ts";
-import { renderComposite } from "./core/renderer/mod.ts";
+import { renderComposite } from "./host/renderer/mod.ts";
 import { validateSyncRules } from "./core/sync/mod.ts";
 import {
   DATE_FILTER_DASHBOARD_RESOURCES,
