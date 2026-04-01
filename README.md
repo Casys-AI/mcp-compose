@@ -1,3 +1,5 @@
+> **This repository has been archived.** Development continues in the monorepo: [Casys-AI/mcp-server](https://github.com/Casys-AI/mcp-server/tree/main/packages/compose)
+
 # mcp-compose
 
 Lightweight Deno library for composing and synchronizing multiple MCP Apps UIs into composite
